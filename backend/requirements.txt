@@ -1,0 +1,28 @@
+# Dependencias para el Sistema de Recomendación de Películas
+# Python 3.8+
+
+# Librería principal de sistemas de recomendación
+scikit-surprise
+
+# Análisis de datos
+pandas==2.0.3
+numpy==1.26.4
+
+# Para el servidor API (siguiente paso)
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+
+# CORS para la comunicación con React
+fastapi-cors==0.0.6
+
+# Base de datos (para el paso 3 del roadmap)
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# Variables de entorno
+python-dotenv==1.0.0
+
+# Opcional: Para testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
