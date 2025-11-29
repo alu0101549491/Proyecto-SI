@@ -408,6 +408,23 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ---
 
+## Cómo instanciar y probar la vase de datos
+### 1. Instalar dependencias (si no las tienes)
+cd backend
+pip install sqlalchemy
+
+### 2. Crear la base de datos (se hace automáticamente)
+python database.py
+
+### 3. Probar el sistema localmente
+python test_database_system.py
+
+### 4. Iniciar el servidor
+uvicorn main:app --reload
+
+### 5. Probar desde el navegador
+http://localhost:8000/docs
+
 ## 🐛 Troubleshooting
 
 ### Error: "Modelo no cargado"
