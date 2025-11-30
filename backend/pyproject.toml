@@ -15,6 +15,7 @@ dependencies = [
     "pytest-asyncio==0.21.1",
     "python-dotenv==1.0.0",
     "requests>=2.32.5",
+    "schedule>=1.2.2",
     "scikit-surprise>=1.1.4",
     "sqlalchemy==2.0.23",
     "uvicorn==0.24.0",

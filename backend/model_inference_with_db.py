@@ -114,38 +114,90 @@ class MovieRecommenderDB:
         db: Session,
         user_id: str, 
         n: int = 10,
-        exclude_rated: bool = True
+        exclude_rated: bool = True,
+        use_hybrid: bool = True
     ) -> List[Tuple[str, float, str]]:
         """
-        Obtiene recomendaciones basadas en ratings de la base de datos
+        Obtiene recomendaciones inteligentes basadas en el tipo de usuario:
+        - Usuario en trainset: usa SVD entrenado
+        - Usuario nuevo con ratings: usa similitud de películas
+        - Usuario nuevo sin ratings: usa películas populares
+        
+        Args:
+            db: Sesión de base de datos
+            user_id: ID del usuario
+            n: Número de recomendaciones
+            exclude_rated: Excluir películas ya valoradas
+            use_hybrid: Usar lógica híbrida para usuarios nuevos
         
         Returns:
             Lista de tuplas (movie_id, predicted_rating, title)
         """
-        # Obtener películas ya valoradas por el usuario
+        # Obtener ratings del usuario desde la BD
         user_ratings_db = self.get_user_ratings_from_db(db, user_id)
         rated_movie_ids = set(user_ratings_db.keys())
         
-        # Obtener todas las películas del sistema
-        all_movie_ids = [self.trainset.to_raw_iid(i) for i in range(self.n_items)]
+        # Detectar si el usuario está en el trainset original
+        try:
+            self.trainset.to_inner_uid(str(user_id))
+            user_in_trainset = True
+        except ValueError:
+            user_in_trainset = False
         
-        # Filtrar películas no valoradas si se requiere
-        if exclude_rated:
-            candidate_movies = [mid for mid in all_movie_ids if mid not in rated_movie_ids]
+        # CASO 1: Usuario en trainset → SVD directo
+        if user_in_trainset:
+            all_movie_ids = [self.trainset.to_raw_iid(i) for i in range(self.n_items)]
+            
+            if exclude_rated:
+                candidate_movies = [mid for mid in all_movie_ids if mid not in rated_movie_ids]
+            else:
+                candidate_movies = all_movie_ids
+            
+            predictions = []
+            for movie_id in candidate_movies:
+                pred_rating = self.predict_rating(user_id, movie_id)
+                title = self.get_movie_title(movie_id)
+                predictions.append((movie_id, pred_rating, title))
+            
+            predictions.sort(key=lambda x: x[1], reverse=True)
+            return predictions[:n]
+        
+        # CASO 2: Usuario nuevo con ratings → Similitud
+        elif len(user_ratings_db) > 0 and use_hybrid:
+            recommendations = defaultdict(list)
+            
+            for movie_id, rating in user_ratings_db.items():
+                if rating >= 4.0:  # Solo películas que le gustaron
+                    similar_movies = self.get_similar_movies(movie_id, n=20)
+                    
+                    for sim_movie_id, similarity in similar_movies:
+                        if sim_movie_id not in rated_movie_ids:
+                            score = rating * similarity
+                            recommendations[sim_movie_id].append(score)
+            
+            # Si no se encontraron recomendaciones, usar populares
+            if not recommendations:
+                popular = self.get_popular_movies(n=n)
+                return [
+                    (movie_id, avg_rating, self.get_movie_title(movie_id))
+                    for movie_id, avg_rating in popular
+                ]
+            
+            final_recommendations = [
+                (movie_id, np.mean(scores), self.get_movie_title(movie_id))
+                for movie_id, scores in recommendations.items()
+            ]
+            
+            final_recommendations.sort(key=lambda x: x[1], reverse=True)
+            return final_recommendations[:n]
+        
+        # CASO 3: Usuario nuevo sin ratings → Películas populares
         else:
-            candidate_movies = all_movie_ids
-        
-        # Predecir ratings
-        predictions = []
-        for movie_id in candidate_movies:
-            pred_rating = self.predict_rating(user_id, movie_id)
-            title = self.get_movie_title(movie_id)
-            predictions.append((movie_id, pred_rating, title))
-        
-        # Ordenar por rating predicho
-        predictions.sort(key=lambda x: x[1], reverse=True)
-        
-        return predictions[:n]
+            popular = self.get_popular_movies(n=n)
+            return [
+                (movie_id, avg_rating, self.get_movie_title(movie_id))
+                for movie_id, avg_rating in popular
+            ]
     
     def add_rating_and_get_recommendations(
         self,

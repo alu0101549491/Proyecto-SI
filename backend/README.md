@@ -728,6 +728,81 @@ SECRET_KEY=tu-clave-secreta
 
 ---
 
+## 🔄 Reentrenamiento del Modelo
+
+El sistema incluye **reentrenamiento automático** que combina:
+- ✅ Dataset original (MovieLens 1M)
+- ✅ Ratings de usuarios reales (Base de datos SQLite)
+
+### Ventajas del Reentrenamiento
+
+**Antes del reentrenamiento:**
+- Usuarios nuevos → Recomendaciones basadas en similitud (heurística)
+- Predicciones genéricas
+
+**Después del reentrenamiento:**
+- Usuarios nuevos incluidos en el modelo entrenado
+- Recomendaciones personalizadas con SVD
+- Mejor precisión (RMSE/MAE)
+
+### Métodos de Reentrenamiento
+
+#### 1. Manual (Script)
+```bash
+# Verificar si se necesita
+python retrain_model.py --check-only
+
+# Reentrenar
+python retrain_model.py
+
+# Con parámetros personalizados
+python retrain_model.py --factors 100 --epochs 20 --min-ratings 100
+```
+
+#### 2. API Endpoint
+```bash
+# Verificar estado
+curl http://localhost:8000/admin/retrain/check
+
+# Reentrenar desde API
+curl -X POST "http://localhost:8000/admin/retrain" \
+  -H "Content-Type: application/json" \
+  -d '{"n_factors": 100, "n_epochs": 20, "min_new_ratings": 100}'
+```
+
+#### 3. Programado (Automático)
+```bash
+# Una vez
+python schedule_retrain.py --mode once
+
+# Diario a las 2 AM
+python schedule_retrain.py --mode daily --time "02:00"
+
+# Semanal (domingos)
+python schedule_retrain.py --mode weekly --day sunday --time "02:00"
+```
+
+### Configurar Cron (Linux/Mac)
+```bash
+# Editar crontab
+crontab -e
+
+# Añadir (cada domingo a las 2 AM)
+0 2 * * 0 cd /ruta/a/backend && python schedule_retrain.py --mode once >> logs/cron.log 2>&1
+```
+
+### Cuándo Reentrenar
+
+| Ratings Nuevos | Acción |
+|----------------|--------|
+| < 100 | ❌ No necesario (usa lógica híbrida) |
+| 100-500 | ⚠️ Considerar semanal |
+| > 500 | ✅ Reentrenar recomendado |
+
+**Ver guía completa:** [RETRAINING_GUIDE.md](RETRAINING_GUIDE.md)
+
+---
+
 ## 📝 Próximos Pasos
 
 - ✅ Paso 1: Entrenar y exportar modelo ✓

@@ -1,0 +1,7 @@
+2025-11-30 18:25:05,889 - INFO - Modo: Ejecución única
+2025-11-30 18:25:05,890 - INFO - ======================================================================
+2025-11-30 18:25:05,890 - INFO - Iniciando verificación de reentrenamiento
+2025-11-30 18:25:05,891 - INFO - ======================================================================
+2025-11-30 18:25:06,413 - INFO - ℹ️ No se necesita reentrenamiento en este momento
+2025-11-30 18:25:06,415 - INFO -    Total ratings en BD: 10
+2025-11-30 18:25:06,415 - INFO -    Mínimo requerido: 100

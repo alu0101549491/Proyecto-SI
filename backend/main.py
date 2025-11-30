@@ -9,14 +9,10 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
-import os
 
 # Importar módulos propios
 from database import get_db, create_database, Rating, RatingCRUD
 from model_inference_with_db import MovieRecommenderDB
-
-MODEL_PATH = os.getenv("MODEL_PATH", "models/svd_model_1m.pkl")
-MOVIES_PATH = os.getenv("MOVIES_PATH", "data/movies.dat")
 
 # Inicializar FastAPI
 app = FastAPI(
@@ -45,7 +41,7 @@ async def load_model():
     """Carga el modelo SVD al iniciar el servidor"""
     global recommender
     try:
-        recommender = MovieRecommenderDB(MODEL_PATH, movies_path=MOVIES_PATH)
+        recommender = MovieRecommenderDB('models/svd_model_1m.pkl', movies_path="data/movies.dat")
         print("✓ Modelo y base de datos cargados correctamente")
     except Exception as e:
         print(f"✗ Error cargando modelo: {e}")
@@ -317,6 +313,141 @@ async def health_check(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# ENDPOINTS - REENTRENAMIENTO
+# ============================================================================
+
+class RetrainRequest(BaseModel):
+    n_factors: int = Field(100, ge=10, le=200)
+    n_epochs: int = Field(20, ge=5, le=50)
+    min_new_ratings: int = Field(100, ge=10)
+
+class RetrainResponse(BaseModel):
+    success: bool
+    message: str
+    training_time: Optional[float] = None
+    metrics: Optional[dict] = None
+    db_ratings_count: Optional[int] = None
+    timestamp: str
+
+@app.post("/admin/retrain", response_model=RetrainResponse)
+async def retrain_model_endpoint(
+    request: RetrainRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Reentrena el modelo SVD con datos de la base de datos.
+    
+    ⚠️ ADVERTENCIA: Este proceso puede tomar varios minutos.
+    Se recomienda ejecutar cuando haya suficientes ratings nuevos.
+    
+    Ejemplo:
+    ```json
+    {
+        "n_factors": 100,
+        "n_epochs": 20,
+        "min_new_ratings": 100
+    }
+    ```
+    """
+    from retrain_model import retrain_model, check_retrain_needed
+    
+    try:
+        # Verificar si es necesario reentrenar
+        needs_retrain = check_retrain_needed(request.min_new_ratings)
+        
+        if not needs_retrain:
+            total_ratings = db.query(Rating).count()
+            return RetrainResponse(
+                success=False,
+                message=f"No es necesario reentrenar. Solo hay {total_ratings} ratings (mínimo: {request.min_new_ratings})",
+                timestamp=datetime.now().isoformat()
+            )
+        
+        # Reentrenar
+        result = retrain_model(
+            n_factors=request.n_factors,
+            n_epochs=request.n_epochs,
+            backup=True
+        )
+        
+        if result['success']:
+            # Recargar el modelo en memoria
+            global recommender
+            recommender = MovieRecommenderDB('models/svd_model_1m.pkl', movies_path="data/movies.dat")
+            
+            return RetrainResponse(
+                success=True,
+                message="Modelo reentrenado exitosamente y recargado en memoria",
+                training_time=result.get('training_time'),
+                metrics=result.get('metrics'),
+                db_ratings_count=result.get('db_ratings_count'),
+                timestamp=result.get('timestamp')
+            )
+        else:
+            return RetrainResponse(
+                success=False,
+                message=f"Error en reentrenamiento: {result.get('error', 'Unknown')}",
+                timestamp=datetime.now().isoformat()
+            )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reentrenando modelo: {str(e)}")
+
+
+@app.get("/admin/retrain/check")
+async def check_retrain_status(
+    min_new_ratings: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica si es necesario reentrenar el modelo.
+    
+    Retorna información sobre:
+    - Total de ratings en BD
+    - Fecha del último reentrenamiento
+    - Ratings nuevos desde el último reentrenamiento
+    - Si se recomienda reentrenar
+    """
+    from retrain_model import check_retrain_needed
+    import pickle
+    import os
+    
+    try:
+        total_ratings = db.query(Rating).count()
+        unique_users = len(set([r.user_id for r in db.query(Rating).all()]))
+        
+        # Info del modelo actual
+        model_info = {}
+        model_path = 'models/svd_model_1m.pkl'
+        if os.path.exists(model_path):
+            with open(model_path, 'rb') as f:
+                model_data = pickle.load(f)
+                model_info = {
+                    'last_retrain': model_data.get('retrained_at', 'Never (original model)'),
+                    'n_users': model_data.get('n_users'),
+                    'n_items': model_data.get('n_items'),
+                    'version': model_data.get('version', '1.0')
+                }
+        
+        needs_retrain = check_retrain_needed(min_new_ratings)
+        
+        return {
+            "needs_retrain": needs_retrain,
+            "database_stats": {
+                "total_ratings": total_ratings,
+                "unique_users": unique_users,
+                "min_required": min_new_ratings
+            },
+            "current_model": model_info,
+            "recommendation": "Retrain recommended" if needs_retrain else "No retrain needed yet",
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verificando estado: {str(e)}")
 
 
 # ============================================================================
