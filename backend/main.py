@@ -9,10 +9,14 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
+import os
 
 # Importar módulos propios
 from database import get_db, create_database, Rating, RatingCRUD
 from model_inference_with_db import MovieRecommenderDB
+
+MODEL_PATH = os.getenv("MODEL_PATH", "models/svd_model_1m.pkl")
+MOVIES_PATH = os.getenv("MOVIES_PATH", "data/movies.dat")
 
 # Inicializar FastAPI
 app = FastAPI(
@@ -41,7 +45,7 @@ async def load_model():
     """Carga el modelo SVD al iniciar el servidor"""
     global recommender
     try:
-        recommender = MovieRecommenderDB('models/svd_model_1m.pkl', movies_path="data/movies.dat")
+        recommender = MovieRecommenderDB(MODEL_PATH, movies_path=MOVIES_PATH)
         print("✓ Modelo y base de datos cargados correctamente")
     except Exception as e:
         print(f"✗ Error cargando modelo: {e}")
