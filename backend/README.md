@@ -1,56 +1,130 @@
-# 🎬 Sistema de Recomendación de Películas - Guía de Setup (Primeros Pasos para Integración del BackEnd)
+# 🎬 Sistema de Recomendación de Películas - Backend con Base de Datos
+
+## 📋 Índice
+
+- [Descripción](#descripción)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Características](#características)
+- [Instalación](#instalación)
+- [Uso Rápido](#uso-rápido)
+- [Arquitectura del Sistema](#arquitectura-del-sistema)
+- [API Endpoints](#api-endpoints)
+- [Base de Datos](#base-de-datos)
+- [Ejemplos de Uso](#ejemplos-de-uso)
+- [Testing](#testing)
+- [Despliegue](#despliegue)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## 📖 Descripción
+
+Sistema de recomendación de películas basado en **Filtrado Colaborativo con SVD** (Singular Value Decomposition). El sistema incluye:
+
+- ✅ Modelo SVD entrenado con MovieLens 1M
+- ✅ Base de datos SQLite para persistencia
+- ✅ API REST con FastAPI
+- ✅ Recomendaciones personalizadas en tiempo real
+- ✅ Historial de ratings por usuario
+
+**Grupo 8 - Sistemas Inteligentes**  
+Fabián González Lence, Diego Hernández Chico, Miguel Martín Falagán
+
+---
 
 ## 📁 Estructura del Proyecto
 
 ```
-movie-recommender/
-├── backend/
-│   ├── models/
-│   │   └── svd_model_1m.pkl          # Modelo entrenado (generado)
-│   ├── train_model.py                 # Script de entrenamiento
-│   ├── model_inference.py             # Sistema de inferencia
-│   ├── main.py                        # API FastAPI
-│   ├── requirements.txt               # Dependencias Python
-│   └── .env                           # Variables de entorno
-│
-└── frontend/
-    ├── src/
-    │   ├── api/
-    │   │   └── movieAPI.ts            # Cliente API TypeScript
-    │   ├── hooks/
-    │   │   └── useRecommendations.ts  # Hooks personalizados
-    │   └── components/
-    │       └── RecommendationList.tsx # Componentes React
-    ├── package.json
-    └── .env                           # Variables de entorno React
+backend/
+├── models/
+│   └── svd_model_1m.pkl          # Modelo entrenado (generado)
+├── data/
+│   ├── movies.dat                # Metadata de películas (MovieLens)
+│   └── movie_recommender.db      # Base de datos SQLite (generado)
+├── database.py                    # Configuración de base de datos
+├── model_inference_with_db.py    # Sistema de inferencia con BD
+├── train_model.py                 # Script de entrenamiento
+├── main.py                        # API FastAPI
+├── test_database_system.py       # Script de pruebas
+├── requirements.txt               # Dependencias Python
+├── pyproject.toml                # Configuración uv
+└── .env                          # Variables de entorno
 ```
 
 ---
 
-## 🐍 Backend (Python + FastAPI)
+## ✨ Características
 
-### 1️⃣ Instalación
+### 🎯 Sistema de Recomendación
+- Algoritmo SVD (Surprise library)
+- Predicciones personalizadas por usuario
+- Recomendaciones basadas en películas similares
+- Top películas populares
+
+### 💾 Base de Datos
+- SQLite para persistencia de datos
+- Almacenamiento de ratings por usuario
+- Historial completo de calificaciones
+- Operaciones CRUD completas
+
+### 🚀 API REST
+- FastAPI con documentación automática
+- Endpoints para añadir ratings
+- Endpoints para obtener recomendaciones
+- Integración BD + Modelo en tiempo real
+- CORS configurado para frontend
+
+---
+
+## 🔧 Instalación
+
+### Requisitos Previos
+- Python 3.12+
+- pip o uv (gestor de paquetes)
+
+### 1️⃣ Clonar y Navegar
 
 ```bash
 cd backend
-
-# Crear entorno virtual (recomendado)
-uv venv
-
-# Activar entorno virtual
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Instalar dependencias
-uv sync
 ```
 
-### 2️⃣ Entrenar el Modelo
+### 2️⃣ Crear Entorno Virtual
 
 ```bash
-# Ejecutar el entrenamiento (toma unos minutos)
+# Con uv (recomendado)
+uv venv
+
+# Con venv tradicional
+python -m venv .venv
+```
+
+### 3️⃣ Activar Entorno Virtual
+
+```bash
+# Windows:
+.venv\Scripts\activate
+
+# Mac/Linux:
+source .venv/bin/activate
+```
+
+### 4️⃣ Instalar Dependencias
+
+```bash
+# Con uv
+uv sync
+
+# Con pip
+pip install -r requirements.txt
+```
+
+---
+
+## 🚀 Uso Rápido
+
+### Paso 1: Entrenar el Modelo
+
+```bash
 python train_model.py
 ```
 
@@ -62,41 +136,35 @@ ENTRENAMIENTO MODELO SVD - MOVIELENS 1M
 Cargando dataset MovieLens 1M...
 Dataset cargado correctamente
 
-Configurando modelo SVD...
-Parámetros: n_factors=100, n_epochs=20, lr_all=0.005, reg_all=0.02
-
-Dividiendo dataset en train (80%) y test (20%)...
-
 Iniciando entrenamiento del modelo...
-Processing epoch 0
-Processing epoch 1
-...
 ✓ Modelo entrenado exitosamente en 610.23 segundos
 
 Evaluando modelo en conjunto de test...
 RMSE: 0.93730
 MAE:  0.73876
 
-Exportando modelo a models/svd_model_1m.pkl...
 ✓ Modelo exportado exitosamente (12.45 MB)
-
-======================================================================
-RESUMEN DEL ENTRENAMIENTO
-======================================================================
-Tiempo de entrenamiento: 610.23 segundos
-RMSE: 0.93730
-MAE:  0.73876
-Modelo exportado: ✓ Sí
-======================================================================
 ```
 
-### 3️⃣ Iniciar el Servidor API
+### Paso 2: Probar el Sistema con Base de Datos
 
 ```bash
-# Método 1: Con uvicorn directamente
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python test_database_system.py
+```
 
-# Método 2: Ejecutando el script
+Este script:
+- ✅ Crea la base de datos
+- ✅ Añade ratings de prueba
+- ✅ Genera recomendaciones
+- ✅ Muestra historial de usuario
+
+### Paso 3: Iniciar el Servidor API
+
+```bash
+# Método recomendado
+uvicorn main:app --reload
+
+# O directamente
 python main.py
 ```
 
@@ -105,78 +173,67 @@ python main.py
 - 📚 Documentación interactiva: http://localhost:8000/docs
 - 📖 Documentación alternativa: http://localhost:8000/redoc
 
-### 4️⃣ Variables de Entorno (Backend)
+---
 
-Crear archivo `backend/.env`:
+## 🏗️ Arquitectura del Sistema
 
-```env
-# Configuración del servidor
-HOST=0.0.0.0
-PORT=8000
-
-# Ruta del modelo
-MODEL_PATH=models/svd_model_1m.pkl
-
-# CORS (URLs permitidas del frontend)
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
-
-# Base de datos (para paso 3 del roadmap)
-DATABASE_URL=sqlite:///./movie_recommender.db
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Cliente (React)                      │
+│                  http://localhost:3000                  │
+└────────────────────────┬────────────────────────────────┘
+                         │ HTTP Requests
+                         ↓
+┌─────────────────────────────────────────────────────────┐
+│                  FastAPI Server (main.py)               │
+│                  http://localhost:8000                  │
+│                                                         │
+│  Endpoints:                                             │
+│  • POST /ratings/add                                    │
+│  • GET  /ratings/user/{user_id}                         │
+│  • POST /recommendations/from-db                        │
+│  • GET  /health                                         │
+└────────────────────┬───────────────────┬────────────────┘
+                     │                   │
+                     ↓                   ↓
+┌────────────────────────────┐  ┌──────────────────────┐
+│  MovieRecommenderDB        │  │  Database (SQLite)   │
+│  (model_inference_with_db) │  │  (database.py)       │
+│                            │  │                      │
+│  • Predicciones SVD        │  │  Tables:             │
+│  • Recomendaciones         │  │  • ratings           │
+│  • Películas similares     │  │  • users             │
+└────────────┬───────────────┘  └──────────────────────┘
+             │
+             ↓
+┌────────────────────────────┐
+│  Modelo SVD Entrenado      │
+│  (svd_model_1m.pkl)        │
+│                            │
+│  • 6040 usuarios           │
+│  • 3675 películas          │
+│  • RMSE: 0.937             │
+└────────────────────────────┘
 ```
 
 ---
 
-## ⚛️ Frontend (React + TypeScript)
+## 🔌 API Endpoints
 
-### 1️⃣ Instalación
+### 📊 Estado y Salud
 
-```bash
-cd frontend
-
-# Con npm
-npm install
-
-# Con yarn
-yarn install
-
-# Con pnpm
-pnpm install
-```
-
-### 2️⃣ Variables de Entorno (Frontend)
-
-Crear archivo `frontend/.env`:
-
-```env
-# URL del backend
-REACT_APP_API_URL=http://localhost:8000
-
-# Si usas Vite en lugar de Create React App:
-VITE_API_URL=http://localhost:8000
-```
-
-### 3️⃣ Iniciar el Desarrollo
+#### `GET /`
+Información general de la API.
 
 ```bash
-# Con Create React App
-npm start
-
-# Con Vite
-npm run dev
+curl http://localhost:8000/
 ```
 
-**La aplicación estará disponible en:**
-- 🌐 React: http://localhost:3000 (CRA) o http://localhost:5173 (Vite)
+#### `GET /health`
+Estado del sistema (modelo, base de datos, estadísticas).
 
----
-
-## 🔌 Ejemplos de Uso de la API
-
-### 📡 Desde el Navegador / Postman
-
-#### 1. Health Check
-```http
-GET http://localhost:8000/health
+```bash
+curl http://localhost:8000/health
 ```
 
 **Respuesta:**
@@ -184,282 +241,512 @@ GET http://localhost:8000/health
 {
   "status": "healthy",
   "model_loaded": true,
+  "database_connected": true,
+  "total_ratings_in_db": 152,
   "n_users": 6040,
-  "n_items": 3706,
+  "n_items": 3675,
   "global_mean": 3.581,
-  "timestamp": "2024-11-28T10:30:00"
-}
-```
-
-#### 2. Obtener Recomendaciones
-```http
-POST http://localhost:8000/recommendations
-Content-Type: application/json
-
-{
-  "user_id": "1",
-  "n": 10,
-  "exclude_rated": true
-}
-```
-
-**Respuesta:**
-```json
-{
-  "user_id": "1",
-  "recommendations": [
-    {
-      "movie_id": "1193",
-      "predicted_rating": 4.823,
-      "rank": 1
-    },
-    {
-      "movie_id": "2019",
-      "predicted_rating": 4.756,
-      "rank": 2
-    }
-  ],
-  "count": 10,
-  "timestamp": "2024-11-28T10:30:00"
-}
-```
-
-#### 3. Predecir Rating
-```http
-POST http://localhost:8000/predict
-Content-Type: application/json
-
-{
-  "user_id": "1",
-  "movie_id": "1193"
-}
-```
-
-#### 4. Películas Similares
-```http
-POST http://localhost:8000/similar-movies
-Content-Type: application/json
-
-{
-  "movie_id": "1",
-  "n": 10
-}
-```
-
-#### 5. Películas Populares
-```http
-POST http://localhost:8000/movies/popular
-Content-Type: application/json
-
-{
-  "n": 10,
-  "min_ratings": 50
-}
-```
-
-#### 6. Recomendaciones para Usuario Nuevo
-```http
-POST http://localhost:8000/recommendations/new-user
-Content-Type: application/json
-
-{
-  "rated_movies": [
-    {"movie_id": "1", "rating": 5.0},
-    {"movie_id": "260", "rating": 4.0},
-    {"movie_id": "1210", "rating": 4.5}
-  ],
-  "n": 10
+  "timestamp": "2025-11-29T18:30:00"
 }
 ```
 
 ---
 
-### 💻 Desde React/TypeScript
+### ⭐ Gestión de Ratings
 
-#### Ejemplo 1: Componente Simple
-```tsx
-import { useRecommendations } from './api/movieAPI';
+#### `POST /ratings/add`
+**Añade un rating y devuelve recomendaciones actualizadas.**
 
-function RecommendationList({ userId }: { userId: string }) {
-  const { recommendations, loading, error } = useRecommendations(userId, 10);
-
-  if (loading) return <div>Cargando...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  return (
-    <ul>
-      {recommendations.map((rec) => (
-        <li key={rec.movie_id}>
-          Película {rec.movie_id} - ⭐ {rec.predicted_rating.toFixed(2)}
-        </li>
-      ))}
-    </ul>
-  );
+**Request:**
+```json
+{
+  "user_id": "user_123",
+  "movie_id": "1",
+  "rating": 5.0
 }
 ```
 
-#### Ejemplo 2: Uso Directo
-```tsx
-import { movieAPI } from './api/movieAPI';
-
-async function fetchData() {
-  try {
-    // Obtener recomendaciones
-    const recs = await movieAPI.getRecommendations({
-      user_id: '1',
-      n: 10
-    });
-    console.log(recs);
-
-    // Películas populares
-    const popular = await movieAPI.getPopularMovies({ n: 10 });
-    console.log(popular);
-
-  } catch (error) {
-    console.error('Error:', error);
-  }
+**Response:**
+```json
+{
+  "rating_saved": {
+    "user_id": "user_123",
+    "movie_id": "1",
+    "rating": 5.0,
+    "movie_title": "Toy Story (1995)",
+    "timestamp": "2025-11-29T18:30:00"
+  },
+  "user_stats": {
+    "total_ratings": 1,
+    "user_id": "user_123"
+  },
+  "recommendations": [
+    {
+      "movie_id": "318",
+      "predicted_rating": 4.637,
+      "title": "Shawshank Redemption, The (1994)",
+      "rank": 1
+    }
+  ]
 }
 ```
 
-#### Ejemplo 3: Con useState
-```tsx
-import { useState, useEffect } from 'react';
-import { movieAPI, MovieRecommendation } from './api/movieAPI';
+**Ejemplo con curl:**
+```bash
+curl -X POST "http://localhost:8000/ratings/add" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "user_123",
+    "movie_id": "1",
+    "rating": 5.0
+  }'
+```
 
-function MyComponent() {
-  const [recommendations, setRecommendations] = useState<MovieRecommendation[]>([]);
+#### `GET /ratings/user/{user_id}`
+**Obtiene el historial completo de un usuario.**
 
-  useEffect(() => {
-    movieAPI.getRecommendations({ user_id: '1', n: 10 })
-      .then(response => setRecommendations(response.recommendations))
-      .catch(error => console.error(error));
-  }, []);
+```bash
+curl http://localhost:8000/ratings/user/user_123
+```
 
-  return (
-    <div>
-      {recommendations.map(rec => (
-        <div key={rec.movie_id}>{rec.movie_id}</div>
-      ))}
-    </div>
-  );
+**Response:**
+```json
+{
+  "user_id": "user_123",
+  "total_ratings": 5,
+  "ratings": [
+    {
+      "movie_id": "1",
+      "title": "Toy Story (1995)",
+      "rating": 5.0,
+      "timestamp": "2025-11-29T17:26:46"
+    }
+  ]
 }
+```
+
+#### `DELETE /ratings/delete`
+**Elimina un rating específico.**
+
+```bash
+curl -X DELETE "http://localhost:8000/ratings/delete?user_id=user_123&movie_id=1"
+```
+
+---
+
+### 🎬 Recomendaciones
+
+#### `POST /recommendations/from-db`
+**Obtiene recomendaciones basadas en ratings de la base de datos.**
+
+**Request:**
+```json
+{
+  "user_id": "user_123",
+  "n": 10
+}
+```
+
+**Response:**
+```json
+{
+  "user_id": "user_123",
+  "recommendations": [
+    {
+      "movie_id": "318",
+      "predicted_rating": 4.637,
+      "title": "Shawshank Redemption, The (1994)",
+      "rank": 1
+    }
+  ],
+  "count": 10,
+  "timestamp": "2025-11-29T18:30:00"
+}
+```
+
+#### `POST /predict`
+**Predice el rating que un usuario daría a una película.**
+
+**Request:**
+```json
+{
+  "user_id": "user_123",
+  "movie_id": "260"
+}
+```
+
+**Response:**
+```json
+{
+  "user_id": "user_123",
+  "movie_id": "260",
+  "movie_title": "Star Wars: Episode IV - A New Hope (1977)",
+  "predicted_rating": 4.732,
+  "timestamp": "2025-11-29T18:30:00"
+}
+```
+
+---
+
+### 📈 Estadísticas
+
+#### `GET /database/stats`
+**Estadísticas generales de la base de datos.**
+
+```bash
+curl http://localhost:8000/database/stats
+```
+
+**Response:**
+```json
+{
+  "total_ratings": 152,
+  "total_users": 23,
+  "total_movies_rated": 87,
+  "timestamp": "2025-11-29T18:30:00"
+}
+```
+
+---
+
+## 💾 Base de Datos
+
+### Esquema SQLite
+
+#### Tabla `ratings`
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | INTEGER | Primary key (auto-increment) |
+| `user_id` | STRING | ID del usuario |
+| `movie_id` | STRING | ID de la película |
+| `rating` | FLOAT | Calificación (1.0-5.0) |
+| `timestamp` | DATETIME | Fecha/hora de creación |
+
+**Índices:**
+- `user_id` (para búsquedas rápidas por usuario)
+- `movie_id` (para búsquedas rápidas por película)
+
+#### Tabla `users` (opcional)
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | INTEGER | Primary key |
+| `user_id` | STRING | ID único del usuario |
+| `created_at` | DATETIME | Fecha de creación |
+| `last_activity` | DATETIME | Última actividad |
+
+### Operaciones CRUD
+
+El archivo `database.py` proporciona:
+
+```python
+from database import SessionLocal, RatingCRUD
+
+db = SessionLocal()
+
+# Crear rating
+RatingCRUD.create_rating(db, "user_1", "1", 5.0)
+
+# Leer ratings de usuario
+ratings = RatingCRUD.get_user_ratings(db, "user_1")
+
+# Actualizar (automático al crear con mismo user_id + movie_id)
+RatingCRUD.create_rating(db, "user_1", "1", 4.5)
+
+# Eliminar
+RatingCRUD.delete_rating(db, "user_1", "1")
+
+# Contar ratings
+count = RatingCRUD.count_user_ratings(db, "user_1")
+
+db.close()
+```
+
+---
+
+## 📚 Ejemplos de Uso
+
+### Ejemplo 1: Flujo Completo en Python
+
+```python
+from database import SessionLocal, create_database
+from model_inference_with_db import MovieRecommenderDB
+
+# 1. Crear base de datos
+create_database()
+
+# 2. Inicializar recomendador
+recommender = MovieRecommenderDB(
+    'models/svd_model_1m.pkl',
+    movies_path="data/movies.dat"
+)
+
+# 3. Crear sesión
+db = SessionLocal()
+
+try:
+    # 4. Añadir rating y obtener recomendaciones
+    result = recommender.add_rating_and_get_recommendations(
+        db=db,
+        user_id="user_new",
+        movie_id="1",
+        rating=5.0,
+        n_recommendations=10
+    )
+    
+    # 5. Mostrar resultados
+    print(f"Rating guardado: {result['rating_saved']['movie_title']}")
+    print(f"\nTop 5 Recomendaciones:")
+    for rec in result['recommendations'][:5]:
+        print(f"  {rec['rank']}. {rec['title']}: {rec['predicted_rating']}⭐")
+
+finally:
+    db.close()
+```
+
+### Ejemplo 2: Usar la API desde JavaScript/React
+
+```javascript
+// Añadir un rating
+async function addRating(userId, movieId, rating) {
+  const response = await fetch('http://localhost:8000/ratings/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: userId,
+      movie_id: movieId,
+      rating: rating
+    })
+  });
+  
+  const data = await response.json();
+  console.log('Rating guardado:', data.rating_saved);
+  console.log('Recomendaciones:', data.recommendations);
+  return data;
+}
+
+// Obtener historial
+async function getUserHistory(userId) {
+  const response = await fetch(`http://localhost:8000/ratings/user/${userId}`);
+  const data = await response.json();
+  console.log(`Usuario ${userId} tiene ${data.total_ratings} ratings`);
+  return data.ratings;
+}
+
+// Usar
+addRating('user_123', '1', 5.0);
+getUserHistory('user_123');
 ```
 
 ---
 
 ## 🧪 Testing
 
-### Test del Backend
+### Script de Prueba Completo
+
 ```bash
-cd backend
+python test_database_system.py
+```
 
-# Probar el sistema de inferencia
-python model_inference.py
+Este script ejecuta:
+1. ✅ Creación de base de datos
+2. ✅ Carga del modelo SVD
+3. ✅ Simulación de ratings de usuario
+4. ✅ Generación de recomendaciones
+5. ✅ Consulta de historial
+6. ✅ Estadísticas de la BD
 
-# Probar la API (con el servidor corriendo)
+### Pruebas Manuales de la API
+
+Con el servidor corriendo:
+
+```bash
+# Health check
 curl http://localhost:8000/health
+
+# Añadir rating
+curl -X POST "http://localhost:8000/ratings/add" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test", "movie_id": "1", "rating": 5.0}'
+
+# Ver historial
+curl http://localhost:8000/ratings/user/test
+
+# Estadísticas
+curl http://localhost:8000/database/stats
 ```
 
-### Test del Cliente API
-```bash
-cd frontend
+### Pruebas con la Documentación Interactiva
 
-# Ejecutar tests (si los tienes configurados)
-npm test
-```
+1. Abre http://localhost:8000/docs
+2. Explora los endpoints
+3. Prueba directamente desde el navegador con "Try it out"
 
 ---
 
 ## 🚀 Despliegue
 
-### Backend
-- **Opción 1:** Render, Railway, Fly.io
-- **Opción 2:** AWS EC2 / Google Cloud
-- **Opción 3:** Docker
+### Opción 1: Railway / Render
+
+```bash
+# Procfile
+web: uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+### Opción 2: Docker
 
 ```dockerfile
-# Dockerfile ejemplo
-FROM python:3.9-slim
+FROM python:3.12-slim
+
 WORKDIR /app
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
+
 COPY . .
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-### Frontend
-- **Opción 1:** Vercel, Netlify
-- **Opción 2:** GitHub Pages
-- **Opción 3:** AWS S3 + CloudFront
+```bash
+# Build y run
+docker build -t movie-recommender .
+docker run -p 8000:8000 movie-recommender
+```
 
----
+### Opción 3: AWS EC2 / Google Cloud
 
-## 📊 Endpoints Disponibles
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/` | Info de la API |
-| GET | `/health` | Estado del servidor y modelo |
-| POST | `/predict` | Predecir rating individual |
-| POST | `/recommendations` | Recomendaciones personalizadas |
-| POST | `/similar-movies` | Películas similares |
-| POST | `/recommendations/new-user` | Recomendaciones para nuevo usuario |
-| POST | `/movies/popular` | Top películas populares |
-
----
-
-## Cómo instanciar y probar la vase de datos
-### 1. Instalar dependencias (si no las tienes)
+```bash
+# En el servidor
+git clone <repo>
 cd backend
-pip install sqlalchemy
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python train_model.py
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
 
-### 2. Crear la base de datos (se hace automáticamente)
-python database.py
-
-### 3. Probar el sistema localmente
-python test_database_system.py
-
-### 4. Iniciar el servidor
-uvicorn main:app --reload
-
-### 5. Probar desde el navegador
-http://localhost:8000/docs
+---
 
 ## 🐛 Troubleshooting
 
 ### Error: "Modelo no cargado"
+
 ```bash
 # Verifica que el modelo existe
-ls backend/models/svd_model_1m.pkl
+ls models/svd_model_1m.pkl
 
-# Si no existe, entrena el modelo
+# Si no existe, entrénalo
 python train_model.py
 ```
 
 ### Error: CORS
+
+Si el frontend no puede conectar:
+
 ```python
-# En main.py, verifica que tu URL de frontend está en allow_origins
-allow_origins=["http://localhost:3000", "http://localhost:5173"]
+# En main.py, añade la URL de tu frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://tu-frontend.com"  # Añade aquí
+    ],
+    ...
+)
 ```
 
-### Error: "Cannot connect to API"
-```typescript
-// Verifica la URL en .env
-REACT_APP_API_URL=http://localhost:8000
+### Error: "Database is locked"
+
+SQLite no maneja bien múltiples escrituras simultáneas:
+
+```python
+# Solución: usar timeout más alto
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False, "timeout": 30}
+)
+```
+
+### Error: Encoding de películas
+
+Si ves caracteres raros en los títulos:
+
+```python
+# En model_inference_with_db.py ya probamos varios encodings
+# Si persiste, especifica manualmente:
+recommender = MovieRecommenderDB(
+    'models/svd_model_1m.pkl',
+    movies_path="data/movies.dat"
+)
 ```
 
 ---
 
-## 📚 Próximos Pasos del Roadmap
+## 📊 Métricas del Modelo
 
-- ✅ **Paso 1:** Entrenar y exportar modelo ✓
-- ✅ **Paso 2:** Importar modelo en la app web ✓
-- ⏳ **Paso 3:** Base de datos para usuarios
-- ⏳ **Paso 4:** Interfaz gráfica con ratings
-- ⏳ **Paso 5:** Conectar con API externa (TMDB)
+| Métrica | Valor |
+|---------|-------|
+| **Algoritmo** | SVD (Surprise) |
+| **Dataset** | MovieLens 1M |
+| **Usuarios** | 6,040 |
+| **Películas** | 3,706 |
+| **Ratings** | 1,000,209 |
+| **RMSE** | 0.937 |
+| **MAE** | 0.739 |
+| **Factores latentes** | 100 |
+| **Épocas** | 20 |
 
 ---
 
-## 🤝 Contribuciones
+## 🔗 Variables de Entorno
 
-Grupo 8: Fabián González Lence, Diego Hernández Chico, Miguel Martín Falagán
+Crea un archivo `.env`:
+
+```env
+# Servidor
+HOST=0.0.0.0
+PORT=8000
+
+# Modelo
+MODEL_PATH=models/svd_model_1m.pkl
+MOVIES_PATH=data/movies.dat
+
+# Base de datos
+DATABASE_URL=sqlite:///./data/movie_recommender.db
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Opcional: Para producción
+ENVIRONMENT=production
+SECRET_KEY=tu-clave-secreta
+```
+
+---
+
+## 📝 Próximos Pasos
+
+- ✅ Paso 1: Entrenar y exportar modelo ✓
+- ✅ Paso 2: Importar modelo en la app web ✓
+- ✅ Paso 3: Base de datos para usuarios
+- ⏳ Paso 4: Interfaz gráfica con ratings
+- ⏳ Paso 5: Conectar con API externa (TMDB)
+
+---
+
+## 📞 Contacto
+
+**Grupo 8 - Sistemas Inteligentes**  
+- Fabián González Lence
+- Diego Hernández Chico
+- Miguel Martín Falagán
+
+---
+
+## 📄 Licencia
+
+Este proyecto es parte de un trabajo académico para la asignatura de Sistemas Inteligentes.
