@@ -14,7 +14,7 @@ class TMDBAPIClient {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = process.env.REACT_APP_TMDB_API_KEY || '';
+    this.apiKey = import.meta.env.VITE_TMDB_API_KEY || '';
     
     if (!this.apiKey) {
       console.warn('⚠️ TMDB API Key no configurada. Las carátulas no funcionarán.');
