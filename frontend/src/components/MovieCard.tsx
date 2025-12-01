@@ -53,7 +53,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onRate, onClick }) => {
         }}
       >
         <img
-          src={movie.poster_url || 'https://via.placeholder.com/200x300?text=Sin+Carátula'}
+          src={movie.poster_url || '/poster-placeholder.jpg'}
           alt={movie.title}
           style={{
             position: 'absolute',
@@ -66,7 +66,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onRate, onClick }) => {
             opacity: isHovering ? 0.7 : 1
           }}
           onError={(e) => {
-            e.currentTarget.src = 'https://via.placeholder.com/200x300?text=Sin+Carátula';
+            e.currentTarget.src = '/poster-placeholder.jpg';
           }}
         />
 

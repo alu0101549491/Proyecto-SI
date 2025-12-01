@@ -176,12 +176,17 @@ const MovieDetailPage: React.FC = () => {
         <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
           {/* Poster */}
           <img
-            src={`https://image.tmdb.org/t/p/w500${details.poster_path}`}
+            src={details.poster_path 
+              ? `https://image.tmdb.org/t/p/w500${details.poster_path}` 
+              : '/poster-placeholder.jpg'}
             alt={details.title}
             style={{
               width: '300px',
               borderRadius: '12px',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+            }}
+            onError={(e) => {
+              e.currentTarget.src = '/poster-placeholder.jpg';
             }}
           />
 
@@ -324,7 +329,9 @@ const MovieDetailPage: React.FC = () => {
                     movie={{
                       movie_id: movie.id.toString(),
                       title: movie.title,
-                      poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+                      poster_url: movie.poster_path 
+                        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+                        : '/poster-placeholder.jpg',
                       release_date: movie.release_date,
                       vote_average: movie.vote_average
                     }}

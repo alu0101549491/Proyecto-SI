@@ -16,6 +16,7 @@ export interface MovieRecommendation {
 
 export interface PopularMovie {
   movie_id: string;
+  title: string;
   average_rating: number;
   rank: number;
 }
@@ -47,6 +48,20 @@ export interface AddRatingResponse {
     user_id: string;
   };
   recommendations: MovieRecommendation[];
+}
+
+export interface SimilarMovie {
+  movie_id: string;
+  title: string;
+  similarity_score: number;
+  predicted_rating?: number;
+}
+
+export interface SimilarMoviesResponse {
+  reference_movie_id: string;
+  reference_movie_title: string;
+  similar_movies: SimilarMovie[];
+  count: number;
 }
 
 // ============================================================================

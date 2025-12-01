@@ -84,12 +84,12 @@ export const useMovieRecommendations = (userId: string) => {
    */
   const loadTopMovies = useCallback(async () => {
     try {
-      const movies = await movieAPI.getPopularMovies(10, 50);
+      const response = await movieAPI.getPopularMovies(10, 50);
       
-      const enrichedPromises = movies.map(movie =>
+      const enrichedPromises = response.map(movie =>
         enrichMovieWithTMDB({
           movie_id: movie.movie_id,
-          title: '', // Necesitamos obtener el título del dataset
+          title: movie.title,
           average_rating: movie.average_rating,
           rank: movie.rank
         })
@@ -136,8 +136,8 @@ export const useMovieRecommendations = (userId: string) => {
       const enrichedPromises = uniqueSimilar.map(movie =>
         enrichMovieWithTMDB({
           movie_id: movie.movie_id,
-          title: movie.title || '',
-          predicted_rating: movie.predicted_rating
+          title: movie.title,
+          predicted_rating: movie.similarity_score
         })
       );
 

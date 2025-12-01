@@ -73,7 +73,7 @@ class TMDBAPIClient {
    */
   getPosterUrl(posterPath: string | null, size: 'w200' | 'w500' | 'original' = 'w500'): string {
     if (!posterPath) {
-      return 'https://via.placeholder.com/500x750?text=Snpm i --save-dev @types/nodein+Carátula';
+      return '/poster-placeholder.jpg';
     }
     return `${TMDB_IMAGE_BASE_URL}/${size}${posterPath}`;
   }
@@ -83,7 +83,7 @@ class TMDBAPIClient {
    */
   getBackdropUrl(backdropPath: string | null, size: 'w780' | 'w1280' | 'original' = 'w1280'): string {
     if (!backdropPath) {
-      return 'https://via.placeholder.com/1280x720?text=Sin+Imagen';
+      return '/poster-placeholder.jpg';
     }
     return `${TMDB_IMAGE_BASE_URL}/${size}${backdropPath}`;
   }
