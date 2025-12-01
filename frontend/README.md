@@ -44,3 +44,14 @@ You don’t have to ever use `eject`. The curated feature set is suitable for sm
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
 To learn React, check out the [React documentation](https://reactjs.org/).
+
+# Variables de Entorno
+
+Para que la aplicación funcione correctamente desde el servidor se necesita crear el archivo `.env` en la carpeta `frontend/` con las siguientes variables de entorno:
+
+```
+VITE_API_URL=http://localhost:8000
+VITE_TMDB_API_KEY=tu_api_key_de_tmdb
+```
+
+Reemplaza `tu_api_key_de_tmdb` con tu clave de API real de TMDB. Esta API no se debe compartir públicamente, ya que es privada para cada usuario.
