@@ -110,6 +110,36 @@ class DatabaseStatsResponse(BaseModel):
     total_movies_rated: int
     timestamp: str
 
+class PopularMoviesRequest(BaseModel):
+    n: int = Field(10, ge=1, le=50, description="Número de películas")
+    min_ratings: int = Field(50, ge=1, description="Mínimo de ratings")
+
+class PopularMovieItem(BaseModel):
+    movie_id: str
+    title: str
+    average_rating: float
+    rank: int
+
+class PopularMoviesResponse(BaseModel):
+    movies: List[PopularMovieItem]
+    count: int
+
+class SimilarMoviesRequest(BaseModel):
+    movie_id: str = Field(..., description="ID de la película")
+    n: int = Field(10, ge=1, le=50, description="Número de similares")
+
+class SimilarMovieItem(BaseModel):
+    movie_id: str
+    title: str
+    similarity_score: float
+    predicted_rating: Optional[float] = None
+
+class SimilarMoviesResponse(BaseModel):
+    reference_movie_id: str
+    reference_movie_title: str
+    similar_movies: List[SimilarMovieItem]
+    count: int
+
 # ============================================================================
 # ENDPOINTS - BASE DE DATOS
 # ============================================================================
@@ -245,6 +275,62 @@ async def get_recommendations_from_database(
             "count": len(recommendations),
             "timestamp": datetime.now().isoformat()
         }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+
+
+@app.post("/movies/popular", response_model=PopularMoviesResponse)
+async def get_popular_movies(request: PopularMoviesRequest):
+    """
+    Obtiene las películas más populares basadas en ratings promedio
+    """
+    if recommender is None:
+        raise HTTPException(status_code=503, detail="Modelo no disponible")
+    
+    try:
+        popular = recommender.get_popular_movies(n=request.n, min_ratings=request.min_ratings)
+        
+        return PopularMoviesResponse(
+            movies=[
+                PopularMovieItem(
+                    movie_id=movie_id,
+                    title=recommender.get_movie_title(movie_id),
+                    average_rating=round(avg_rating, 3),
+                    rank=i + 1
+                )
+                for i, (movie_id, avg_rating) in enumerate(popular)
+            ],
+            count=len(popular)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+
+
+@app.post("/similar-movies", response_model=SimilarMoviesResponse)
+async def get_similar_movies(request: SimilarMoviesRequest):
+    """
+    Obtiene películas similares a una película dada basándose en factores latentes
+    """
+    if recommender is None:
+        raise HTTPException(status_code=503, detail="Modelo no disponible")
+    
+    try:
+        similar = recommender.get_similar_movies(request.movie_id, n=request.n)
+        reference_title = recommender.get_movie_title(request.movie_id)
+        
+        return SimilarMoviesResponse(
+            reference_movie_id=request.movie_id,
+            reference_movie_title=reference_title,
+            similar_movies=[
+                SimilarMovieItem(
+                    movie_id=movie_id,
+                    title=recommender.get_movie_title(movie_id),
+                    similarity_score=round(score, 3)
+                )
+                for movie_id, score in similar
+            ],
+            count=len(similar)
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
