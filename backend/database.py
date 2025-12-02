@@ -3,7 +3,7 @@ Configuración de Base de Datos SQLite
 Sistema de Recomendación de Películas - Grupo 8
 """
 
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -36,7 +36,7 @@ class Rating(Base):
     __tablename__ = "ratings"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False)
     movie_id = Column(String, index=True, nullable=False)
     rating = Column(Float, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -46,16 +46,16 @@ class Rating(Base):
 
 
 class User(Base):
-    """Modelo para almacenar información de usuarios (opcional, para futuro)"""
+    """Modelo para almacenar información de usuarios"""
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, unique=True, index=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    last_activity = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = Column(String, primary_key=True, index=True)
+    mail = Column(String, unique=True, nullable=False)
+    user_name = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=False)
     
     def __repr__(self):
-        return f"<User(id={self.user_id})>"
+        return f"<User(user_id={self.user_id}, mail={self.mail}, user_name={self.user_name})>"
 
 
 # ============================================================================
@@ -171,22 +171,34 @@ class UserCRUD:
     """Operaciones CRUD para usuarios"""
     
     @staticmethod
-    def create_user(db, user_id: str):
+    def create_user(db, user_id: str, mail: str, user_name: str, password: str):
         """Crea un nuevo usuario"""
-        existing = db.query(User).filter(User.user_id == user_id).first()
-        if existing:
-            return existing
+        existing_mail = db.query(User).filter(User.mail == mail).first()
+        existing_user_name = db.query(User).filter(User.user_name == user_name).first()
+        if existing_mail:
+            return existing_mail
         
-        new_user = User(user_id=user_id)
+        if existing_user_name:
+            return existing_user_name
+        
+        new_user = User(user_id=user_id, mail=mail, user_name=user_name, password=password)
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         return new_user
     
     @staticmethod
-    def get_user(db, user_id: str):
+    def get_user_by_id(db, user_id: str):
         """Obtiene un usuario"""
         return db.query(User).filter(User.user_id == user_id).first()
+    
+    @staticmethod
+    def get_user_by_name(db, user_name: str):
+        return db.query(User).filter(User.user_name == user_name).first()
+    
+    @staticmethod
+    def get_user_by_mail(db, mail: str):
+        return db.query(User).filter(User.mail == mail).first()
     
     @staticmethod
     def get_all_users(db):
@@ -205,6 +217,11 @@ if __name__ == "__main__":
     # Ejemplo de uso
     db = SessionLocal()
     try:
+        # Crear algunos usuarios de prueba
+        UserCRUD.create_user(db, "user_1", "manolito@gmail.com", "xXEr_ManolitoXx", "SoyLaCabra")
+        UserCRUD.create_user(db, "user_2", "fernando@gmail.com", "Fernando Gutierrez", "Fernando123")
+        UserCRUD.create_user(db, "user_3", "willyrex@gmail.com", "W de Willy", "FreeNFTs")
+
         # Crear algunos ratings de prueba
         RatingCRUD.create_rating(db, "user_1", "1", 5.0)
         RatingCRUD.create_rating(db, "user_1", "260", 4.5)
@@ -217,6 +234,10 @@ if __name__ == "__main__":
         print(f"\nRatings de user_1: {len(user_ratings)}")
         for rating in user_ratings:
             print(f"  - Película {rating.movie_id}: {rating.rating}⭐")
+        
+        # Consultar usuarios
+        user = UserCRUD.get_user_by_id(db, "user_1")
+        print(f"user_id:{user.user_id}, mail:{user.mail}, user_name{user.user_name}, password{user.password}")
     
     finally:
         db.close()

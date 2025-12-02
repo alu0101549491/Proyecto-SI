@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 # Importar módulos propios
-from database import get_db, create_database, Rating, RatingCRUD
+from database import get_db, create_database, Rating, RatingCRUD, User, UserCRUD
 from model_inference_with_db import MovieRecommenderDB
 
 # Inicializar FastAPI
@@ -56,6 +56,12 @@ class AddRatingRequest(BaseModel):
     movie_id: str = Field(..., description="ID de la película")
     rating: float = Field(..., ge=1.0, le=5.0, description="Rating (1-5)")
 
+class AddUserRequest(BaseModel):
+    user_id: str = Field(..., description="ID del usuario")
+    mail: str = Field(..., description="Correo del usuario")
+    user_name: str = Field(..., description="Nombre de usuario")
+    password: str = Field(..., description="Contraseña")
+
 class RatingResponse(BaseModel):
     user_id: str
     movie_id: str
@@ -73,6 +79,13 @@ class AddRatingAndRecommendResponse(BaseModel):
     rating_saved: RatingResponse
     user_stats: dict
     recommendations: List[MovieRecommendation]
+
+class AddUserResponse(BaseModel):
+    user_id: str
+    mail: str
+    user_name: str
+    existing_mail: bool
+    existing_user_name: bool
 
 class UserHistoryItem(BaseModel):
     movie_id: str
@@ -221,7 +234,8 @@ async def get_database_stats(db: Session = Depends(get_db)):
     """
     try:
         all_ratings = db.query(Rating).all()
-        unique_users = len(set([r.user_id for r in all_ratings]))
+        all_users = db.query(User).all()
+        unique_users = len(set(user.user_id for user in all_users))
         unique_movies = len(set([r.movie_id for r in all_ratings]))
         
         return DatabaseStatsResponse(
@@ -229,6 +243,44 @@ async def get_database_stats(db: Session = Depends(get_db)):
             total_users=unique_users,
             total_movies_rated=unique_movies,
             timestamp=datetime.now().isoformat()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+    
+@app.post("/users/add", response_model=AddUserResponse)
+async def add_user(
+    request: AddUserRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Añade un nuevo usuario a la base de datos
+    """
+    repeated_mail = UserCRUD.get_user_by_mail(db, request.mail)
+    if repeated_mail:
+      return AddUserResponse(
+          user_id="-",
+          mail="-",
+          user_name="-",
+          existing_mail=True,
+          existing_user_name=False
+      )
+    repeated_user_name = UserCRUD.get_user_by_name(db, request.user_name)
+    if repeated_user_name:
+        return AddUserResponse(
+          user_id=repeated_user_name.user_id,
+          mail=repeated_user_name.mail,
+          user_name=repeated_user_name.user_name,
+          existing_mail=False,
+          existing_user_name=True
+        )
+    try:
+        new_user = UserCRUD.create_user(db, request.user_id, request.mail, request.user_name, request.password)
+        return AddUserResponse(
+            user_id=new_user.user_id,
+            mail=new_user.mail,
+            user_name=new_user.user_name,
+            existing_mail=False,
+            existing_user_name=False
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
