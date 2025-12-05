@@ -260,8 +260,26 @@ class MovieRecommenderDB:
             for r in ratings
         ]
     
-    def get_similar_movies(self, movie_id: str, n: int = 10) -> List[Tuple[str, float]]:
-        """Encuentra películas similares (sin cambios)"""
+    def get_similar_movies(
+        self, 
+        movie_id: str, 
+        n: int = 10,
+        exclude_movie_ids: set = None
+    ) -> List[Tuple[str, float]]:
+        """
+        Encuentra películas similares basándose en factores latentes
+        
+        Args:
+            movie_id: ID de la película de referencia
+            n: Número de películas similares a devolver
+            exclude_movie_ids: Set de IDs de películas a excluir
+        
+        Returns:
+            Lista de tuplas (movie_id, similarity_score)
+        """
+        if exclude_movie_ids is None:
+            exclude_movie_ids = set()
+        
         try:
             movie_inner_id = self.trainset.to_inner_iid(str(movie_id))
             movie_factors = self.model.qi[movie_inner_id]
@@ -271,12 +289,18 @@ class MovieRecommenderDB:
                 if iid == movie_inner_id:
                     continue
                 
+                # Obtener el ID raw de la película
+                other_movie_id = self.trainset.to_raw_iid(iid)
+                
+                # NUEVO: Excluir películas en la lista de exclusión
+                if other_movie_id in exclude_movie_ids:
+                    continue
+                
                 other_factors = self.model.qi[iid]
                 similarity = np.dot(movie_factors, other_factors) / (
                     np.linalg.norm(movie_factors) * np.linalg.norm(other_factors)
                 )
                 
-                other_movie_id = self.trainset.to_raw_iid(iid)
                 similarities.append((other_movie_id, similarity))
             
             similarities.sort(key=lambda x: x[1], reverse=True)

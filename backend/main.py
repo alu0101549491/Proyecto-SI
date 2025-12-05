@@ -135,6 +135,7 @@ class PopularMoviesResponse(BaseModel):
 
 class SimilarMoviesRequest(BaseModel):
     movie_id: str = Field(..., description="ID de la película")
+    user_id: Optional[str] = Field(None, description="ID del usuario (para excluir sus ratings)")
     n: int = Field(10, ge=1, le=50, description="Número de similares")
 
 class SimilarMovieItem(BaseModel):
@@ -355,15 +356,31 @@ async def get_popular_movies(request: PopularMoviesRequest):
 
 
 @app.post("/similar-movies", response_model=SimilarMoviesResponse)
-async def get_similar_movies(request: SimilarMoviesRequest):
+async def get_similar_movies(
+    request: SimilarMoviesRequest,
+    db: Session = Depends(get_db)
+):
     """
-    Obtiene películas similares a una película dada basándose en factores latentes
+    Obtiene películas similares a una película dada basándose en factores latentes.
+    Si se proporciona user_id, excluye las películas que el usuario ya ha valorado.
     """
     if recommender is None:
         raise HTTPException(status_code=503, detail="Modelo no disponible")
     
     try:
-        similar = recommender.get_similar_movies(request.movie_id, n=request.n)
+        # NUEVO: Obtener películas ya valoradas por el usuario
+        exclude_movie_ids = set()
+        if request.user_id:
+            user_ratings = recommender.get_user_ratings_from_db(db, request.user_id)
+            exclude_movie_ids = set(user_ratings.keys())
+        
+        # Obtener películas similares excluyendo las ya valoradas
+        similar = recommender.get_similar_movies(
+            request.movie_id, 
+            n=request.n,
+            exclude_movie_ids=exclude_movie_ids
+        )
+        
         reference_title = recommender.get_movie_title(request.movie_id)
         
         return SimilarMoviesResponse(
