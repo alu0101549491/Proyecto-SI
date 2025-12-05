@@ -105,6 +105,7 @@ export const useMovieRecommendations = (userId: string) => {
 
   /**
    * Cargar películas de descubrimiento (similares/relacionadas)
+   * ACTUALIZADO: Excluye películas ya valoradas
    */
   const loadDiscoveryMovies = useCallback(async () => {
     try {
@@ -121,8 +122,9 @@ export const useMovieRecommendations = (userId: string) => {
         .filter(r => r.rating >= 4)
         .slice(0, 3);
 
+      // CAMBIO CLAVE: Pasar userId para excluir películas ya valoradas
       const similarPromises = topRated.map(rating =>
-        movieAPI.getSimilarMovies(rating.movie_id, 5)
+        movieAPI.getSimilarMovies(rating.movie_id, 5, userId) // <-- AQUÍ
       );
 
       const similarResults = await Promise.all(similarPromises);

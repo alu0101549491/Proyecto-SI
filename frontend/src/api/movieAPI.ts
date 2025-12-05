@@ -127,12 +127,17 @@ class MovieAPIClient {
   }
 
   /**
-   * Obtener películas similares
+   * Obtener películas similares (con opción de excluir ratings del usuario)
    */
-  async getSimilarMovies(movieId: string, n: number = 10) {
+  async getSimilarMovies(
+    movieId: string, 
+    n: number = 10,
+    userId?: string  // NUEVO: parámetro opcional
+  ) {
     try {
       const response = await this.client.post('/similar-movies', {
         movie_id: movieId,
+        user_id: userId,  // NUEVO: enviar user_id si está disponible
         n: n
       });
       return response.data.similar_movies;
